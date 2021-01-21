@@ -38,9 +38,11 @@ public class SwiftWebviewCookieManagerPlugin: NSObject, FlutterPlugin {
   }
     
     public static func setCookies(cookies: Array<NSDictionary>, result: @escaping FlutterResult) {
-        for cookie in cookies {
-            _setCookie(cookie: cookie, result: result)
-        }
+        cookies.forEach((cookie) {
+            _setCookie(cookie: cookie);
+        })
+        
+        result(true)
     }
     
     public static func clearCookies(result: @escaping FlutterResult) {
@@ -70,31 +72,41 @@ public class SwiftWebviewCookieManagerPlugin: NSObject, FlutterPlugin {
         }
     }
     
-    private static func _setCookie(cookie: NSDictionary, result: @escaping FlutterResult) {
+    private static func _setCookie(cookie: NSDictionary) {
         let expiresDate = cookie["expires"] as? Double
         let isSecure = cookie["secure"] as? Bool
         let isHttpOnly = cookie["httpOnly"] as? Bool
         
         var properties: [HTTPCookiePropertyKey: Any] = [:]
-        properties[.name] = cookie["name"] as! String
+        
+        guard let name = cookie["name"] as? String else { return }
+        guard let value = cookie["value"] as? String else { return }
+        guard let domain = cookie["domain"] as? String else { return }
+        
+        properties[.name] = name
+        properties[.value] = value
+        properties[.domain] = domain
+        properties[.path] = cookie["path"] as? String ?? "/"
+        
         properties[.value] = cookie["value"] as! String
         properties[.domain] = cookie["domain"] as! String
         properties[.path] = cookie["path"] as? String ?? "/"
-        if expiresDate != nil {
-            properties[.expires] = Date(timeIntervalSince1970: expiresDate!)
+        
+        if let expiresDate = cookie["expires"] as? Double {
+            properties[.expires] = Date(timeIntervalSince1970: expiresDate)
         }
-        if isSecure != nil && isSecure! {
+        
+        if let isSecure = cookie["secure"] as? Bool, isSecure {
             properties[.secure] = "TRUE"
         }
-        if isHttpOnly != nil && isHttpOnly! {
+
+        if let isHttpOnly = cookie["httpOnly"] as? Bool, isHttpOnly {
             properties[.init("HttpOnly")] = "YES"
         }
         
-        let cookie = HTTPCookie(properties: properties)!
+        guard let cookie = HTTPCookie(properties: properties) else { return }
         
-        httpCookieStore!.setCookie(cookie, completionHandler: {() in
-            result(true)
-        })
+        WKWebsiteDataStore.default().httpCookieStore.setCookie(cookie)
     }
     
     public static func getCookies(urlString: String?, result: @escaping FlutterResult) {
