@@ -38,9 +38,9 @@ public class SwiftWebviewCookieManagerPlugin: NSObject, FlutterPlugin {
   }
     
     public static func setCookies(cookies: Array<NSDictionary>, result: @escaping FlutterResult) {
-        cookies.forEach((cookie) {
-            _setCookie(cookie: cookie);
-        })
+        cookies.forEach{(cookie) in
+            _setCookie(cookie: cookie)
+        }
         
         result(true)
     }
